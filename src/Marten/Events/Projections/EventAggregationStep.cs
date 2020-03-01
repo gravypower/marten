@@ -14,7 +14,7 @@ namespace Marten.Events.Projections
         {
             if (method.GetParameters().Length != 1
                 || method.GetParameters().Single().ParameterType != typeof(Event<TEvent>)
-                || method.DeclaringType != typeof(T))
+                || ( method.DeclaringType != null && !method.DeclaringType.IsAssignableFrom(typeof(T))))
             {
                 throw new ArgumentOutOfRangeException($"Method {method.Name} on {method.DeclaringType} cannot be used as an aggregation method");
             }

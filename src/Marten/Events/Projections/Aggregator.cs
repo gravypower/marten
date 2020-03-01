@@ -11,7 +11,7 @@ namespace Marten.Events.Projections
     {
         public static readonly string ApplyMethod = "Apply";
 
-        private readonly IDictionary<Type, object> _aggregations = new Dictionary<Type, object>();
+        protected readonly IDictionary<Type, object> Aggregations = new Dictionary<Type, object>();
 
         public Aggregator() : this(typeof(T).GetMethods().Where(x => x.Name == ApplyMethod && x.GetParameters().Length == 1))
         {
@@ -37,13 +37,13 @@ namespace Marten.Events.Projections
                             .CloseAndBuildAs<object>(method, typeof(T), eventType);
                     }
 
-                    _aggregations.Add(eventType, step);
+                    Aggregations.Add(eventType, step);
                 });
         }
 
         public Type AggregateType => typeof(T);
 
-        public string Alias { get; }
+        public string Alias { get; protected set; }
 
         public T Build(IEnumerable<IEvent> events, IDocumentSession session)
         {
@@ -57,17 +57,17 @@ namespace Marten.Events.Projections
             return state;
         }
 
-        public Type[] EventTypes => _aggregations.Keys.ToArray();
+        public Type[] EventTypes => Aggregations.Keys.ToArray();
 
         public Aggregator<T> Add<TEvent>(IAggregation<T, TEvent> aggregation)
         {
-            if (_aggregations.ContainsKey(typeof(TEvent)))
+            if (Aggregations.ContainsKey(typeof(TEvent)))
             {
-                _aggregations[typeof(TEvent)] = aggregation;
+                Aggregations[typeof(TEvent)] = aggregation;
             }
             else
             {
-                _aggregations.Add(typeof(TEvent), aggregation);
+                Aggregations.Add(typeof(TEvent), aggregation);
             }
 
             return this;
@@ -80,14 +80,14 @@ namespace Marten.Events.Projections
 
         public IAggregation<T, TEvent> AggregatorFor<TEvent>()
         {
-            return _aggregations.ContainsKey(typeof(TEvent))
-                ? _aggregations[typeof(TEvent)].As<IAggregation<T, TEvent>>()
+            return Aggregations.ContainsKey(typeof(TEvent))
+                ? Aggregations[typeof(TEvent)].As<IAggregation<T, TEvent>>()
                 : null;
         }
 
         public bool AppliesTo(EventStream stream)
         {
-            return stream.Events.Any(x => _aggregations.ContainsKey(x.Data.GetType()));
+            return stream.Events.Any(x => Aggregations.ContainsKey(x.Data.GetType()));
         }
     }
 }
